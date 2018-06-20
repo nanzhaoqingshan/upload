@@ -1,0 +1,46 @@
+<?php
+namespace \Common\ext;
+class Upload{
+		public function index(){
+			if (empty($_FILES)) {
+				exit(json_encode(['errCode' =>400,'errMsg' => '没有上传文件']));
+			}
+			foreach ($_FILES as $key => $value) {
+				if (!in_array($value['type'],['image/gif','image/png','image/bmp','image/jpeg'])) {
+					$error[$key] = ['errCode' => 400,'errMsg' =>'图片类型错误'];
+					continue;
+				}
+				if ($value['error']) {
+					$error[$key] = ['errCode' => 400,'errMsg' => '上传错误'];
+					continue;
+				}
+				if ($value['size'] > 3000000) {
+					$error[$key] = ['errCode' => 400,'errMsg' => '上传文件超出最大限制'];
+					continue;
+				}
+				$imgName = md5_file($value['tmp_name']);
+				$namearr = explode('.',$value['name']);
+				$fullImgName = $imgName.'.'.end($namearr);
+				$dirname = WWWROOT.'/upload/imgs/'.date('Ym',time()).'/';
+				if (!is_dir($dirname)) {
+					 mkdir ($dirname,0777,true);
+				}
+				$fileName = $dirname.$fullImgName;
+				if(file_exists($fileName)){
+					$error[$key] = ['errCode' => 200,'url' => '/'.date('Ym',time()).'/'.$fullImgName];
+					continue;
+				}
+				$status = move_uploaded_file($value['tmp_name'],$fileName);
+				if ($status) {
+					$error[$key] = ['errCode'=>200,'url' => '/'.date('Ym',time()).'/'.$fullImgName];
+					continue;
+				}				
+			}
+			if (count($error) == 1) {
+				exit(json_encode(end($error)));
+			}else{
+				exit(json_encode($error));
+			}
+		}
+}
+?>
